@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BYU vs Utah - Rivalry Game</title>
+    <style>
+        :root {
+            --byu-blue: #002e5d;
+            --utah-red: #cc0000;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial Black', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to right, var(--byu-blue) 50%, var(--utah-red) 50%);
+            color: white;
+            overflow: hidden;
+        }
+
+        /* Home Button Style */
+        .home-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: 0.3s;
+        }
+
+        .home-btn:hover {
+            background-color: #fff;
+            transform: scale(1.05);
+        }
+
+        .status-box {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1.6rem;
+            border: 3px solid white; /* Changed border to white to match line */
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .board-wrapper {
+            position: relative;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            grid-template-rows: repeat(3, 120px);
+            gap: 10px;
+            background-color: #ddd;
+        }
+
+        .cell {
+            width: 120px;
+            height: 120px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .cell img {
+            max-width: 90%;
+            max-height: 90%;
+            display: block;
+        }
+
+        #win-line-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* WINNING LINE IS NOW WHITE */
+        line {
+            stroke: white; 
+            stroke-width: 14;
+            stroke-linecap: round;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 0.7s ease-out forwards;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+        .reset-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 50px;
+            border: none;
+            background: white;
+            color: #333;
+            transition: 0.3s;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="home-btn">🏠 HOME</a>
+
+    <div class="status-box" id="status">GO COUGS! (Your Turn)</div>
+
+    <div class="board-wrapper">
+        <div class="grid" id="grid">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+        <svg id="win-line-svg"></svg>
+    </div>
+
+    <button class="reset-btn" onclick="resetGame()">RESET MATCHUP</button>
+
+    <audio id="byu-song" src="byu.mp3"></audio>
+    <audio id="utah-song" src="utah.mp3"></audio>
+
+    <script>
+        const BYU_PATH = "assets/img/BYU.png";
+        const UTES_PATH = "assets/img/Utes.png";
+
+        const cells = document.querySelectorAll('.cell');
+        const statusText = document.getElementById('status');
+        const winSvg = document.getElementById('win-line-svg');
+        
+        let state = ["", "", "", "", "", "", "", "", ""];
+        let active = true;
+
+        const wins = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]];
+
+        cells.forEach(cell => cell.addEventListener('click', () => {
+            const i = cell.dataset.index;
+            if (state[i] || !active) return;
+            placeMark(i, "BYU");
+            if (active) {
+                statusText.innerText = "UTAH IS THINKING...";
+                setTimeout(computerMove, 600);
+            }
+        }));
+
+        function placeMark(i, team) {
+            state[i] = team;
+            const img = document.createElement('img');
+            img.src = team === "BYU" ? BYU_PATH : UTES_PATH;
+            
+            img.onerror = function() {
+                cells[i].innerHTML = `<span style="color:${team==='BYU'?'#002e5d':'#cc0000'}; font-size:3rem;">${team==='BYU'?'Y':'U'}</span>`;
+            };
+
+            cells[i].innerHTML = ''; 
+            cells[i].appendChild(img);
+            checkWinner();
+        }
+
+        function computerMove() {
+            if (!active) return;
+            const empty = state.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+            if (empty.length > 0) {
+                const move = empty[Math.floor(Math.random() * empty.length)];
+                placeMark(move, "UTAH");
+                if (active) statusText.innerText = "YOUR TURN (BYU)";
+            }
+        }
+
+        function checkWinner() {
+            for (let p of wins) {
+                const [a, b, c] = p;
+                if (state[a] && state[a] === state[b] && state[a] === state[c]) {
+                    active = false;
+                    drawWinningLine(p);
+                    handleWin(state[a]);
+                    return;
+                }
+            }
+            if (!state.includes("")) { active = false; statusText.innerText = "IT'S A TIE!"; }
+        }
+
+        function drawWinningLine(p) {
+            const board = document.getElementById('grid').getBoundingClientRect();
+            const start = cells[p[0]].getBoundingClientRect();
+            const end = cells[p[2]].getBoundingClientRect();
+            const x1 = start.left - board.left + (start.width / 2);
+            const y1 = start.top - board.top + (start.height / 2);
+            const x2 = end.left - board.left + (end.width / 2);
+            const y2 = end.top - board.top + (end.height / 2);
+            winSvg.innerHTML = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`;
+        }
+
+        function handleWin(winner) {
+            statusText.innerText = winner === "BYU" ? "RISE AND SHOUT!" : "A UTAH MAN AM I!";
+            const song = document.getElementById(winner === "BYU" ? 'byu-song' : 'utah-song');
+            song.play().catch(()=>{});
+        }
+
+        function resetGame() {
+            state = ["", "", "", "", "", "", "", "", ""];
+            active = true;
+            statusText.innerText = "GO COUGS! (Your Turn)";
+            winSvg.innerHTML = "";
+            cells.forEach(c => c.innerHTML = "");
+            document.querySelectorAll('audio').forEach(a => { a.pause(); a.currentTime = 0; });
+        }
+    </script>
+</body>
+</html>
